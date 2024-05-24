@@ -579,6 +579,9 @@ static ImGuiMouseSource GetMouseSourceFromMessageExtraInfo()
     return ImGuiMouseSource_Mouse;
 }
 
+ImVec2 mouseScale_ (1.0f, 1.0f);
+ImVec2 mouseOffset_(0.0f, 0.0f);
+
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     // Most backends don't have silent checks like this one, but we need it because WndProc are called early in CreateWindow().
@@ -609,6 +612,10 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
         POINT mouse_pos = { (LONG)GET_X_LPARAM(lParam), (LONG)GET_Y_LPARAM(lParam) };
         if (msg == WM_NCMOUSEMOVE && ::ScreenToClient(hwnd, &mouse_pos) == FALSE) // WM_NCMOUSEMOVE are provided in absolute coordinates.
             return 0;
+
+		mouse_pos.x = mouse_pos.x * mouseScale_.x + mouseOffset_.x;
+		mouse_pos.y = mouse_pos.y * mouseScale_.y + mouseOffset_.y;
+
         io.AddMouseSourceEvent(mouse_source);
         io.AddMousePosEvent((float)mouse_pos.x, (float)mouse_pos.y);
         return 0;
@@ -748,7 +755,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
 #endif
         return 0;
     }
-    return 0;
+    return 1;
 }
 
 
