@@ -59,7 +59,7 @@ Index of this file:
 #ifdef IMGUI_USER_CONFIG
 #include IMGUI_USER_CONFIG
 #endif
-#include "imconfig.h"
+#include "../imconfig.h"
 
 #ifndef IMGUI_DISABLE
 
@@ -3371,7 +3371,7 @@ enum ImGuiModFlags_ { ImGuiModFlags_None = 0, ImGuiModFlags_Ctrl = ImGuiMod_Ctrl
 #ifdef IMGUI_USER_H_FILENAME
 #include IMGUI_USER_H_FILENAME
 #else
-#include "imgui_user.h"
+#include "../imgui_user.h"
 #endif
 #endif
 
