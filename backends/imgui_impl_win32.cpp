@@ -193,6 +193,20 @@ static bool ImGui_ImplWin32_InitEx(void* hwnd, bool platform_has_own_dc)
         }
 #endif // IMGUI_IMPL_WIN32_DISABLE_GAMEPAD
 
+
+	/*Sim has multiple modes and default imgui_impl_win32 behaviour of taking DisplaySize from window rect is not suitable for VR,
+	  which result in  cut of interface when  width of sim window is less than 1680 px, (see 9342: Interface cuts off in VR ticket)
+	  sim  will manually set it externally before each frame
+	  here is just initial setup
+	*/
+	RECT rect;
+	GetClientRect(bd->hWnd, &rect);
+
+	float width  = (float)(rect.right - rect.left);
+	float height = (float)(rect.bottom - rect.top);
+
+	io.DisplaySize = ImVec2(width, height);
+
     return true;
 }
 
@@ -387,10 +401,15 @@ void    ImGui_ImplWin32_NewFrame()
     IM_ASSERT(bd != nullptr && "Context or backend not initialized? Did you call ImGui_ImplWin32_Init()?");
     ImGuiIO& io = ImGui::GetIO();
 
-    // Setup display size (every frame to accommodate for window resizing)
+	/*
+	  Sim has multiple modes and default imgui_impl_win32 behaviour of taking DisplaySize from window rect is not suitable for VR,
+	  which result in  cut of interface when  width of sim window is less than 1680 px, (see 9342: Interface cuts off in VR ticket)
+	  sim  will manually set it externally before each frame
+
     RECT rect = { 0, 0, 0, 0 };
     ::GetClientRect(bd->hWnd, &rect);
     io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+	*/
 
     // Setup time step
     INT64 current_time = 0;
