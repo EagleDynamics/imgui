@@ -206,6 +206,20 @@ static bool ImGui_ImplWin32_InitEx(void* hwnd, bool platform_has_own_dc)
         }
 #endif // IMGUI_IMPL_WIN32_DISABLE_GAMEPAD
 
+
+	/*Sim has multiple modes and default imgui_impl_win32 behaviour of taking DisplaySize from window rect is not suitable for VR,
+	  which result in  cut of interface when  width of sim window is less than 1680 px, (see 9342: Interface cuts off in VR ticket)
+	  sim  will manually set it externally before each frame
+	  here is just initial setup
+	*/
+	RECT rect;
+	GetClientRect(bd->hWnd, &rect);
+
+	float width  = (float)(rect.right - rect.left);
+	float height = (float)(rect.bottom - rect.top);
+
+	io.DisplaySize = ImVec2(width, height);
+
     return true;
 }
 
@@ -457,10 +471,15 @@ void    ImGui_ImplWin32_NewFrame()
     IM_ASSERT(bd != nullptr && "Context or backend not initialized? Did you call ImGui_ImplWin32_Init()?");
     ImGuiIO& io = ImGui::GetIO();
 
-    // Setup display size (every frame to accommodate for window resizing)
+	/*
+	  Sim has multiple modes and default imgui_impl_win32 behaviour of taking DisplaySize from window rect is not suitable for VR,
+	  which result in  cut of interface when  width of sim window is less than 1680 px, (see 9342: Interface cuts off in VR ticket)
+	  sim  will manually set it externally before each frame
+
     RECT rect = { 0, 0, 0, 0 };
     ::GetClientRect(bd->hWnd, &rect);
     io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+	*/
     if (bd->WantUpdateMonitors)
         ImGui_ImplWin32_UpdateMonitors();
 
@@ -651,6 +670,9 @@ static ImGuiMouseSource GetMouseSourceFromMessageExtraInfo()
     return ImGuiMouseSource_Mouse;
 }
 
+ImVec2 mouseScale_ (1.0f, 1.0f);
+ImVec2 mouseOffset_(0.0f, 0.0f);
+
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     // Most backends don't have silent checks like this one, but we need it because WndProc are called early in CreateWindow().
@@ -679,11 +701,18 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
             bd->MouseTrackedArea = area;
         }
         POINT mouse_pos = { (LONG)GET_X_LPARAM(lParam), (LONG)GET_Y_LPARAM(lParam) };
+
+		mouse_pos.x = mouse_pos.x * mouseScale_.x + mouseOffset_.x;
+		mouse_pos.y = mouse_pos.y * mouseScale_.y + mouseOffset_.y;
+
         bool want_absolute_pos = (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0;
         if (msg == WM_MOUSEMOVE && want_absolute_pos)    // WM_MOUSEMOVE are client-relative coordinates.
             ::ClientToScreen(hwnd, &mouse_pos);
         if (msg == WM_NCMOUSEMOVE && !want_absolute_pos) // WM_NCMOUSEMOVE are absolute coordinates.
             ::ScreenToClient(hwnd, &mouse_pos);
+        if (msg == WM_NCMOUSEMOVE && ::ScreenToClient(hwnd, &mouse_pos) == FALSE) // WM_NCMOUSEMOVE are provided in absolute coordinates.
+            return 0;
+
         io.AddMouseSourceEvent(mouse_source);
         io.AddMousePosEvent((float)mouse_pos.x, (float)mouse_pos.y);
         return 0;
@@ -826,7 +855,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
         bd->WantUpdateMonitors = true;
         return 0;
     }
-    return 0;
+    return 1;
 }
 
 
